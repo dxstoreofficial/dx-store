@@ -1012,7 +1012,7 @@ function selectItem(type, id) {
           ? '<strong>🛡️ Garansi resmi DX STORE · ' + days + ' hari</strong><p>' + safeText(data.warranty_terms || "Ajukan klaim melalui Pusat Bantuan dengan ID pesanan.") + '</p>'
           : '<strong>Produk ini tidak memiliki garansi.</strong>';
       } else {
-        warrantyBox.innerHTML = "";
+        warrantyBox.innerHTML = '<p style="margin:8px 0;color:#b8c9e6">Keamanan: DX STORE tidak meminta kata sandi atau OTP. Proses serah terima harus mengikuti mekanisme resmi yang disediakan oleh game.</p>';
       }
       modal.querySelector("#dxDetailPhoto").innerHTML = image ? '<img src="' + safeText(image) + '" alt="' + safeText(name) + '">' : '<span>DX STORE</span>';
       const chatButton=modal.querySelector("#dxDetailChat"); chatButton.hidden=!data.seller_id||data.seller_id===currentUser?.id; chatButton.onclick=()=>startDXSellerChat(type,data);
@@ -2993,7 +2993,7 @@ async function loadDXAdminAccountOrders(){
  if(error){host.textContent="Pesanan akun admin gagal dimuat: "+getDXError(error);return;}
  if(!orders?.length){host.textContent="Belum ada pesanan untuk akun game milik admin.";return;}
  const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · siap diproses",processing:"Sedang diproses",delivered:"Menunggu konfirmasi pembeli",completed:"Selesai",rejected:"Ditolak",cancelled:"Dibatalkan",disputed:"Dalam penanganan"};
- host.innerHTML=orders.map(o=>{
+ host.innerHTML='<p style="padding:10px 12px;border:1px solid #36577e;border-radius:10px;color:#b8c9e6">Catat progres serah terima di sini. Jangan masukkan kata sandi, OTP, atau data login ke DX STORE; ikuti mekanisme resmi dari game.</p>'+orders.map(o=>{
   const actions=o.status==="paid"?'<button type="button" data-dx-admin-account-order="'+safeText(o.id)+'" data-dx-admin-next="processing">Mulai Penyerahan</button>':o.status==="processing"?'<button type="button" data-dx-admin-account-order="'+safeText(o.id)+'" data-dx-admin-next="delivered">Tandai Penyerahan Selesai</button>':o.status==="delivered"?'<small style="color:#86efac">Menunggu pembeli mengonfirmasi penerimaan</small>':"";
   return '<article style="padding:13px;margin:9px 0;border:1px solid #334b70;border-radius:12px;background:#0b1426"><strong>'+safeText(o.item_name||"Akun game")+'</strong><p style="margin:6px 0">'+formatPrice(o.total_amount)+' · '+safeText(labels[o.status]||o.status)+'</p><small>No. '+safeText(o.id)+' · '+new Date(o.created_at).toLocaleString("id-ID")+'</small><p style="margin:10px 0 0">'+actions+'</p></article>';
  }).join("");
