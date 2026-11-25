@@ -1639,6 +1639,7 @@ function createDXAdminPanel() {
       <button type="button" id="dxAdminVerifyAccounts">Verifikasi Akun Game</button>
       <button type="button" id="dxAdminProducts">Kelola Produk</button>
       <button type="button" id="dxAdminAccounts">Kelola Akun Game</button>
+      <button type="button" id="dxAdminAccountOrders">Pesanan Akun Admin</button>
       <button type="button" id="dxAdminChats">Obrolan Pengguna</button>
       <button type="button" id="dxAdminWithdrawals">Pencairan Penjual</button>
     </div>
@@ -1647,6 +1648,7 @@ function createDXAdminPanel() {
     <section id="dxAdminVerificationList" style="display:none;margin:12px 0"></section>
     <section id="dxAdminChatList" style="display:none;margin:12px 0"></section>
     <section id="dxAdminWithdrawalsList" style="display:none;margin:12px 0"></section>
+    <section id="dxAdminAccountOrdersList" style="display:none;margin:12px 0"></section>
     <form id="dxAdminForm">
       <input type="hidden" id="dxEditId">
 
@@ -1866,10 +1868,11 @@ function createDXAdminPanel() {
     document.head.appendChild(style);
   }
 
-  const hideAdminListingAreas=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminForm").style.display="none"; $("dxAdminList").style.display="none"; };
+  const hideAdminListingAreas=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminAccountOrdersList").style.display="none"; $("dxAdminForm").style.display="none"; $("dxAdminList").style.display="none"; };
   $("dxAdminSellers")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminSellerApplications").style.display="block"; await loadDXAdminSellerApplications(); });
   $("dxAdminChats")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminChatList").style.display="block"; await loadDXAdminChatConversations(); });
   $("dxAdminWithdrawals")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminWithdrawalsList").style.display="block"; await loadDXAdminWithdrawals(); });
+  $("dxAdminAccountOrders")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminAccountOrdersList").style.display="block"; await loadDXAdminAccountOrders(); });
   $("dxAdminVerifyProducts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("products"); });
   $("dxAdminVerifyAccounts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("account_listings"); });
   const showListingAdmin=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminForm").style.display="block"; $("dxAdminList").style.display="block"; };
@@ -2978,6 +2981,27 @@ async function reviewDXWithdrawal(id,status){
 }
 
 
+async function loadDXAdminAccountOrders(){
+ const host=$("dxAdminAccountOrdersList");
+ if(!host||!currentUser||!dxSupabase)return;
+ host.textContent="Memuat pesanan akun milik admin...";
+ const {data:listings,error:listError}=await dxSupabase.from("account_listings").select("id,title,game").eq("seller_id",currentUser.id);
+ if(listError){host.textContent="Listing akun admin gagal dimuat: "+getDXError(listError);return;}
+ const ids=(listings||[]).map(x=>x.id);
+ if(!ids.length){host.textContent="Belum ada listing akun game milik admin.";return;}
+ const {data:orders,error}=await dxSupabase.from("orders").select("id,item_id,item_name,total_amount,status,created_at,item_type").eq("item_type","account").in("item_id",ids).order("created_at",{ascending:false}).limit(100);
+ if(error){host.textContent="Pesanan akun admin gagal dimuat: "+getDXError(error);return;}
+ if(!orders?.length){host.textContent="Belum ada pesanan untuk akun game milik admin.";return;}
+ const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · siap diproses",processing:"Sedang diproses",delivered:"Menunggu konfirmasi pembeli",completed:"Selesai",rejected:"Ditolak",cancelled:"Dibatalkan",disputed:"Dalam penanganan"};
+ host.innerHTML=orders.map(o=>{
+  const actions=o.status==="paid"?'<button type="button" data-dx-admin-account-order="'+safeText(o.id)+'" data-dx-admin-next="processing">Mulai Penyerahan</button>':o.status==="processing"?'<button type="button" data-dx-admin-account-order="'+safeText(o.id)+'" data-dx-admin-next="delivered">Tandai Penyerahan Selesai</button>':o.status==="delivered"?'<small style="color:#86efac">Menunggu pembeli mengonfirmasi penerimaan</small>':"";
+  return '<article style="padding:13px;margin:9px 0;border:1px solid #334b70;border-radius:12px;background:#0b1426"><strong>'+safeText(o.item_name||"Akun game")+'</strong><p style="margin:6px 0">'+formatPrice(o.total_amount)+' · '+safeText(labels[o.status]||o.status)+'</p><small>No. '+safeText(o.id)+' · '+new Date(o.created_at).toLocaleString("id-ID")+'</small><p style="margin:10px 0 0">'+actions+'</p></article>';
+ }).join("");
+ host.querySelectorAll("[data-dx-admin-account-order]").forEach(b=>b.addEventListener("click",async()=>{
+  await updateDXSellerOrder(b.dataset.dxAdminAccountOrder,b.dataset.dxAdminNext);
+  await loadDXAdminAccountOrders();
+ }));
+}
 async function loadDXSellerOrders(){
  const host=$("dxSellerOrders");if(!host||!currentUser||!dxSupabase)return;
  host.textContent="Memuat pesanan masuk...";
