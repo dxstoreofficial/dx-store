@@ -1875,7 +1875,7 @@ function createDXAdminPanel() {
   $("dxAdminAccountOrders")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminAccountOrdersList").style.display="block"; await loadDXAdminAccountOrders(); });
   $("dxAdminVerifyProducts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("products"); });
   $("dxAdminVerifyAccounts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("account_listings"); });
-  const showListingAdmin=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminForm").style.display="block"; $("dxAdminList").style.display="block"; };
+  const showListingAdmin=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminAccountOrdersList").style.display="none"; $("dxAdminForm").style.display="block"; $("dxAdminList").style.display="block"; };
   $("dxAdminProducts").addEventListener("click", () => {
     showListingAdmin();
     dxAdminType = "products";
