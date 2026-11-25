@@ -1962,12 +1962,12 @@ async function loadDXSellerApplicationState() {
  const photo=$("dxSellerListingPhoto");
  if(photo&&!photo.dataset.bound){photo.addEventListener("change",()=>{const f=photo.files?.[0],preview=$("dxSellerListingPreview"),img=$("dxSellerListingPreviewImg");if(!f||!preview||!img)return;if(!["image/jpeg","image/png","image/webp"].includes(f.type)||f.size>5*1024*1024){photo.value="";preview.hidden=true;dxAlert("Foto harus JPG, PNG, atau WEBP maksimal 5 MB.");return;}img.src=URL.createObjectURL(f);preview.hidden=false;});photo.dataset.bound="1";}
  const type=$("dxSellerListingType"),gameWrap=$("dxSellerGameWrap");
- if(type&&!type.dataset.bound){type.addEventListener("change",()=>{gameWrap.hidden=type.value!=="account";$("dxSellerListingTitleLabel").textContent=type.value==="account"?"Judul akun":"Nama produk";});type.dataset.bound="1";}
+  if(type&&!type.dataset.bound){type.value="product";type.disabled=true;type.dataset.bound="1";if(gameWrap)gameWrap.hidden=true;}
  form.hidden=true;listingPanel.hidden=true;state.textContent="Memeriksa status pengajuan...";
  const {data,error}=await dxSupabase.from("seller_applications").select("id,store_name,status,admin_note,created_at").eq("user_id",currentUser.id).order("created_at",{ascending:false}).limit(1).maybeSingle();
  if(error){state.textContent="Status pengajuan gagal dimuat: "+getDXError(error);return;}
  if(!data){state.textContent="Belum ada pengajuan. Isi formulir berikut untuk mulai berjualan.";form.hidden=false;return;}
- if(data.status==="approved"){const withdrawForm=$("dxSellerWithdrawForm");if(withdrawForm&&!withdrawForm.dataset.bound){withdrawForm.addEventListener("submit",submitDXSellerWithdrawal);withdrawForm.dataset.bound="1";}state.innerHTML='<strong style="color:#86efac">✓ Penjual disetujui: '+safeText(data.store_name)+'</strong><br>Silakan kirim produk atau akun game. Semua listing tetap menunggu persetujuan admin.';listingPanel.hidden=false;await Promise.all([loadDXMySellerListings(),loadDXSellerOrders(),loadDXSellerWithdrawals()]);return;}
+ if(data.status==="approved"){const withdrawForm=$("dxSellerWithdrawForm");if(withdrawForm&&!withdrawForm.dataset.bound){withdrawForm.addEventListener("submit",submitDXSellerWithdrawal);withdrawForm.dataset.bound="1";}state.innerHTML='<strong style="color:#86efac">✓ Penjual disetujui: '+safeText(data.store_name)+'</strong><br>Untuk peluncuran awal, DX STORE hanya menerima produk digital. Semua listing tetap menunggu persetujuan admin.';listingPanel.hidden=false;await Promise.all([loadDXMySellerListings(),loadDXSellerOrders(),loadDXSellerWithdrawals()]);return;}
  if(data.status==="pending"){state.innerHTML='<strong style="color:#fde68a">Pengajuan sedang diperiksa admin.</strong><br>Nama toko: '+safeText(data.store_name)+'. Formulir jualan akan terbuka setelah disetujui.';return;}
  state.innerHTML='<strong style="color:#fca5a5">Pengajuan sebelumnya ditolak.</strong>'+(data.admin_note?'<br>Catatan admin: '+safeText(data.admin_note):'')+'<br>Kamu dapat mengajukan kembali.';form.hidden=false;
 }
@@ -1985,8 +1985,9 @@ async function loadDXMySellerListings(){
 }
 async function submitDXSellerListing(event){
  event.preventDefault();if(!currentUser||!dxSupabase){dxAlert("Silakan masuk terlebih dahulu.");return;}
- const button=$("dxSellerListingSubmit"),type=$("dxSellerListingType").value,title=$("dxSellerListingTitle").value.trim(),game=$("dxSellerGame").value.trim(),description=$("dxSellerListingDescription").value.trim(),price=Number($("dxSellerListingPrice").value),file=$("dxSellerListingPhoto").files?.[0];
- if(!title||!Number.isFinite(price)||price<=0||!file||(type==="account"&&!game)){dxAlert("Lengkapi nama, harga, foto, dan nama game untuk akun game.");return;}
+ const button=$("dxSellerListingSubmit"),type=$("dxSellerListingType").value,title=$("dxSellerListingTitle").value.trim(),description=$("dxSellerListingDescription").value.trim(),price=Number($("dxSellerListingPrice").value),file=$("dxSellerListingPhoto").files?.[0];
+ if(type!=="product"){dxAlert("Untuk saat ini DX STORE hanya menerima listing produk digital. Penjualan akun game ditutup sementara.");return;}
+ if(!title||!Number.isFinite(price)||price<=0||!file){dxAlert("Lengkapi nama produk, harga, dan foto.");return;}
  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){dxAlert("Foto harus JPG, PNG, atau WEBP maksimal 5 MB.");return;}
  button.disabled=true;button.textContent="Mengirim...";
  let objectPath=null;
