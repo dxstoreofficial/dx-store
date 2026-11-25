@@ -779,7 +779,7 @@
       <nav class="dx-nav-links" id="dxNavLinks">
         <a href="#home">Beranda</a>
         <a href="#products">Produk Digital</a>
-        <a href="#accounts">Akun Game</a>
+        
       </nav>
 
       <div class="dx-nav-actions">
@@ -817,13 +817,11 @@
         <h1>LEVEL UP YOUR<br><span>DIGITAL WORLD.</span></h1>
 
         <p class="dx-hero-copy">
-          Temukan berbagai produk digital dan akun game pilihan
-          dengan pengalaman marketplace yang mudah dan nyaman.
+          Temukan produk digital pilihan dengan pengalaman marketplace yang mudah dan nyaman.
         </p>
 
         <div class="dx-hero-buttons">
           <a href="#products" class="dx-button">Jelajahi Produk</a>
-          <a href="#accounts" class="dx-button dx-button-outline">Lihat Akun Game</a>
         </div>
       </div>
 
@@ -851,7 +849,7 @@
           <p>Jelajahi berbagai produk digital pilihan dari DX STORE.</p>
         </div>
 
-        <label class="dx-market-search"><input id="dxMarketplaceSearch" type="search" placeholder="Cari produk atau akun game..." autocomplete="off" aria-label="Cari produk atau akun game"></label>
+        <label class="dx-market-search"><input id="dxMarketplaceSearch" type="search" placeholder="Cari produk digital..." autocomplete="off" aria-label="Cari produk atau akun game"></label>
         <div class="dx-catalog" id="productGrid">
           <div class="dx-empty-card">
             Produk digital akan ditampilkan di sini.
@@ -866,9 +864,9 @@
       <div class="dx-container">
 
         <div class="dx-section-heading">
-          <small>DX GAME MARKETPLACE</small>
-          <h2>Marketplace Akun Game</h2>
-          <p>Jelajahi pilihan akun game yang tersedia.</p>
+          <small>DX STORE · INFORMASI LAYANAN</small>
+          <h2>Akun Game Ditutup Sementara</h2>
+          <p>Penjualan akun game belum tersedia. Fitur akan dibuka kembali setelah sistem pemeriksaan dan serah terima akun dinyatakan aman.</p>
         </div>
 
         <section id="dxSellerArea" style="margin:22px 0;padding:18px;border:1px solid #38bdf855;border-radius:16px;background:linear-gradient(135deg,#101e39,#151a36)">
@@ -883,11 +881,11 @@
           </form>
           <section id="dxSellerListingPanel" hidden style="margin-top:18px;padding-top:16px;border-top:1px solid #385477">
             <h4 style="margin:0 0 8px;color:#86efac">Panel Penjual</h4>
-            <p style="font-size:13px;color:#c2d1e8">Kirim produk digital atau akun game. Foto wajib JPG, PNG, atau WEBP maksimal 5 MB. Listing baru tayang setelah disetujui admin.</p>
+            <p style="font-size:13px;color:#c2d1e8">Kirim produk digital. Foto wajib JPG, PNG, atau WEBP maksimal 5 MB. Listing baru tayang setelah disetujui admin.</p>
             <form id="dxSellerListingForm" style="display:grid;gap:10px">
-              <label>Jenis listing<select id="dxSellerListingType" required style="display:block;width:100%;margin-top:5px;padding:11px;border-radius:9px"><option value="product">Produk digital</option><option value="account">Akun game</option></select></label>
+              <input id="dxSellerListingType" type="hidden" value="product">
               <label id="dxSellerListingTitleLabel" for="dxSellerListingTitle">Nama produk</label>
-              <input id="dxSellerListingTitle" type="text" minlength="2" maxlength="100" required placeholder="Nama produk atau judul akun" style="padding:11px;border-radius:9px">
+              <input id="dxSellerListingTitle" type="text" minlength="2" maxlength="100" required placeholder="Nama produk" style="padding:11px;border-radius:9px">
               <div id="dxSellerGameWrap" hidden><label for="dxSellerGame">Nama game</label><input id="dxSellerGame" type="text" maxlength="80" placeholder="Contoh: Mobile Legends" style="width:100%;padding:11px;border-radius:9px"></div>
               <label>Deskripsi<textarea id="dxSellerListingDescription" rows="3" maxlength="3000" placeholder="Jelaskan produk atau akun yang dijual" style="display:block;width:100%;margin-top:5px;padding:11px;border-radius:9px"></textarea></label>
               <label>Harga (Rupiah)<input id="dxSellerListingPrice" type="number" min="1" step="1" required placeholder="Contoh: 40000" style="display:block;width:100%;margin-top:5px;padding:11px;border-radius:9px"></label>
@@ -942,7 +940,7 @@
   <footer class="dx-footer">
     <div class="dx-container">
       <strong>DX STORE</strong>
-      <p>Digital Products &amp; Game Account Marketplace</p>
+      <p>Digital Products Marketplace</p>
       <p>© 2026 DX STORE. All rights reserved.</p>
     </div>
   </footer>
