@@ -947,11 +947,7 @@ async function loadProducts() {
 async function loadAccountListings() {
   const grid = $("accountGrid");
   if (!grid) return;
-  if (DX_CONFIG.enableGameAccounts !== true) {
-    grid.innerHTML = '<div class="dx-empty-card"><strong>Penjualan akun game sedang ditutup sementara.</strong><p>Fitur ini akan dibuka kembali setelah pemeriksaan keamanan dan proses serah terima akun selesai.</p></div>';
-    return;
-  }
-  grid.innerHTML = "<p>Memuat akun game...</p>";
+    grid.innerHTML = "<p>Memuat akun game...</p>";
   try {
     const data = await fetchDXPublicRows("account_listings");
     if (!data.length) { grid.innerHTML = "<p>Belum ada akun game yang disetujui admin.</p>"; return; }
@@ -973,11 +969,7 @@ async function loadAccountListings() {
 }
 
 function selectItem(type, id) {
-  if (type === "account" && DX_CONFIG.enableGameAccounts !== true) {
-    dxAlert("Penjualan akun game sedang ditutup sementara demi keamanan pembeli.");
-    return;
-  }
-  const table = type === "account" ? "account_listings" : "products";
+    const table = type === "account" ? "account_listings" : "products";
   if (!dxSupabase) return;
 
   dxSupabase.from(table).select("*").eq("id", id).maybeSingle()
@@ -2021,8 +2013,7 @@ async function loadDXMySellerListings(){
 async function submitDXSellerListing(event){
  event.preventDefault();if(!currentUser||!dxSupabase){dxAlert("Silakan masuk terlebih dahulu.");return;}
  const button=$("dxSellerListingSubmit"),type=$("dxSellerListingType").value,title=$("dxSellerListingTitle").value.trim(),description=$("dxSellerListingDescription").value.trim(),price=Number($("dxSellerListingPrice").value),file=$("dxSellerListingPhoto").files?.[0];
- if(type!=="product"){dxAlert("Untuk saat ini DX STORE hanya menerima listing produk digital. Penjualan akun game ditutup sementara.");return;}
- if(!title||!Number.isFinite(price)||price<=0||!file){dxAlert("Lengkapi nama produk, harga, dan foto.");return;}
+  if(!title||!Number.isFinite(price)||price<=0||!file){dxAlert("Lengkapi nama produk, harga, dan foto.");return;}
  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){dxAlert("Foto harus JPG, PNG, atau WEBP maksimal 5 MB.");return;}
  button.disabled=true;button.textContent="Mengirim...";
  let objectPath=null;
