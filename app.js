@@ -947,6 +947,10 @@ async function loadProducts() {
 async function loadAccountListings() {
   const grid = $("accountGrid");
   if (!grid) return;
+  if (DX_CONFIG.enableGameAccounts !== true) {
+    grid.innerHTML = '<div class="dx-empty-card"><strong>Penjualan akun game sedang ditutup sementara.</strong><p>Fitur ini akan dibuka kembali setelah pemeriksaan keamanan dan proses serah terima akun selesai.</p></div>';
+    return;
+  }
   grid.innerHTML = "<p>Memuat akun game...</p>";
   try {
     const data = await fetchDXPublicRows("account_listings");
@@ -969,6 +973,10 @@ async function loadAccountListings() {
 }
 
 function selectItem(type, id) {
+  if (type === "account" && DX_CONFIG.enableGameAccounts !== true) {
+    dxAlert("Penjualan akun game sedang ditutup sementara demi keamanan pembeli.");
+    return;
+  }
   const table = type === "account" ? "account_listings" : "products";
   if (!dxSupabase) return;
 
