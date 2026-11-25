@@ -14,4 +14,4 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: FRONTEND_ORIGIN
-        value: https://drs-giveaway.github.io
+        value: https://dxstoreofficial.github.io
