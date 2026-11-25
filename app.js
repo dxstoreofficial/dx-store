@@ -1875,18 +1875,34 @@ function createDXAdminPanel() {
   $("dxAdminAccountOrders")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminAccountOrdersList").style.display="block"; await loadDXAdminAccountOrders(); });
   $("dxAdminVerifyProducts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("products"); });
   $("dxAdminVerifyAccounts")?.addEventListener("click", async () => { hideAdminListingAreas(); $("dxAdminVerificationList").style.display="block"; await loadDXAdminVerificationList("account_listings"); });
-  const showListingAdmin=()=>{ $("dxAdminSellerApplications").style.display="none"; $("dxAdminVerificationList").style.display="none"; $("dxAdminChatList").style.display="none"; $("dxAdminWithdrawalsList").style.display="none"; $("dxAdminAccountOrdersList").style.display="none"; $("dxAdminForm").style.display="block"; $("dxAdminList").style.display="block"; };
+  const showListingAdmin=(type)=>{
+    // Pastikan halaman profil dan panel admin yang menjadi induk formulir terlihat.
+    window.dxAdminPanelExpanded = true;
+    showDXView("profile");
+    const adminPanel = $("dxAdminPanel");
+    if (adminPanel) adminPanel.style.display = "block";
+    dxAdminType = type;
+    $("dxAdminSellerApplications").style.display="none";
+    $("dxAdminVerificationList").style.display="none";
+    $("dxAdminChatList").style.display="none";
+    $("dxAdminWithdrawalsList").style.display="none";
+    $("dxAdminAccountOrdersList").style.display="none";
+    $("dxAdminForm").style.display="block";
+    $("dxAdminList").style.display="block";
+    $("dxGameWrap").style.display = type === "account_listings" ? "block" : "none";
+    $("dxProductWarrantyWrap").style.display = type === "account_listings" ? "none" : "block";
+    updateDXAdminFormLabels();
+    $("dxAdminForm").scrollIntoView({behavior:"smooth",block:"start"});
+  };
   $("dxAdminProducts").addEventListener("click", () => {
-    showListingAdmin();
-    dxAdminType = "products";
+    showListingAdmin("products");
     resetDXAdminForm();
     loadDXAdminList();
     updateDXAdminFormLabels();
   });
 
   $("dxAdminAccounts").addEventListener("click", () => {
-    showListingAdmin();
-    dxAdminType = "account_listings";
+    showListingAdmin("account_listings");
     resetDXAdminForm();
     loadDXAdminList();
     updateDXAdminFormLabels();
