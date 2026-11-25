@@ -1416,14 +1416,14 @@ async function sendDXChatMessage(event){
 async function loadDXOrderHistory(){
  const host=$("dxOrderHistoryList");if(!host||!dxSupabase||!currentUser)return;
  host.textContent="Memuat pesanan...";
- const {data,error}=await dxSupabase.from("orders").select("id,item_name,total_amount,status,created_at").eq("buyer_id",currentUser.id).order("created_at",{ascending:false}).limit(50);
+ const {data,error}=await dxSupabase.from("orders").select("id,item_name,total_amount,status,created_at,item_type").eq("buyer_id",currentUser.id).order("created_at",{ascending:false}).limit(50);
  if(error){host.textContent="Riwayat gagal dimuat: "+getDXError(error);return;}
  if(!data?.length){host.textContent="Belum ada pesanan.";return;}
  const session=(await dxSupabase.auth.getSession()).data.session;
- const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · menunggu diproses",processing:"Sedang diproses",delivered:"Produk telah dikirim · konfirmasi penerimaan",completed:"Selesai",cancelled:"Dibatalkan",rejected:"Ditolak",disputed:"Dalam penanganan"};
+ const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · menunggu diproses",processing:"Sedang diproses",delivered:"Penyerahan selesai · konfirmasi penerimaan",completed:"Selesai",cancelled:"Dibatalkan",rejected:"Ditolak",disputed:"Dalam penanganan"};
  const cards=await Promise.all(data.map(async o=>{
   let deliveryHtml="";
-  if(["delivered","completed"].includes(o.status)&&session?.access_token){
+  if(o.item_type==="product"&&["delivered","completed"].includes(o.status)&&session?.access_token){
    try{
     const response=await fetch(new URL("api/payments/delivery?orderId="+encodeURIComponent(o.id),DX_CONFIG.paymentApiUrl+"/"),{headers:{"apikey":DX_CONFIG.supabaseKey,"Authorization":"Bearer "+session.access_token}});
     if(response.ok){
@@ -1432,7 +1432,7 @@ async function loadDXOrderHistory(){
     }
    }catch(e){console.warn("Delivery detail unavailable",e);}
   }
-  return `<article class="dx-ticket-card" data-dx-order-history-id="${safeText(o.id)}"><b>${safeText(o.item_name||"Pesanan DX STORE")}</b><p>No. ${safeText(o.id)}</p><p>${formatPrice(o.total_amount)} · ${safeText(labels[o.status]||o.status)}</p><small>${new Date(o.created_at).toLocaleString(getDXCountry().locale||"id-ID")}</small>${deliveryHtml}${o.status==="delivered"?`<p><button type="button" data-dx-confirm-received="${safeText(o.id)}">Konfirmasi Barang Diterima</button></p>`:""}</article>`;
+  return `<article class="dx-ticket-card" data-dx-order-history-id="${safeText(o.id)}"><b>${safeText(o.item_name||"Pesanan DX STORE")}</b><p>No. ${safeText(o.id)}</p><p>${formatPrice(o.total_amount)} · ${safeText(labels[o.status]||o.status)}</p><small>${new Date(o.created_at).toLocaleString(getDXCountry().locale||"id-ID")}</small>${deliveryHtml}${o.status==="delivered"?`<p><button type="button" data-dx-confirm-received="${safeText(o.id)}">Konfirmasi Penerimaan</button></p>`:""}</article>`;
  }));
  host.innerHTML=cards.join("");
  host.querySelectorAll("[data-dx-confirm-received]").forEach(b=>b.addEventListener("click",()=>confirmDXOrderReceived(b.dataset.dxConfirmReceived)));
