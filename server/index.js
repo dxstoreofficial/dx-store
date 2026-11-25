@@ -12,7 +12,7 @@ for (const key of required) {
 
 const app = express();
 const port = Number(process.env.PORT || 10000);
-const frontendOrigin = process.env.FRONTEND_ORIGIN || "https://drs-giveaway.github.io";
+const frontendOrigin = process.env.FRONTEND_ORIGIN || "https://dxstoreofficial.github.io";
 
 const supabaseAuth = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
