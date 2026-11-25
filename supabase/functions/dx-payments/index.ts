@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const FRONTEND_ORIGIN = Deno.env.get("DX_FRONTEND_ORIGIN") || "https://dxstoreofficial.github.io";
+const FRONTEND_ORIGIN = "https://dxstoreofficial.github.io";
 
 const authClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
@@ -82,23 +82,21 @@ const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   }
 }
 async function isAdmin(userId: string) {
+  // Only the explicitly registered DX STORE Owner may review payments.
+  // Legacy profiles.role='admin' is intentionally not trusted here because
+  // older RLS policies treated every admin role as a full administrator.
   const { data, error } = await adminClient
-    .from("profiles")
-    .select("id, role")
-    .eq("id", userId)
+    .from("admin_access")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("access_level", "owner")
     .maybeSingle();
 
   if (error) {
-    console.error("Admin role lookup failed:", error.message, error.code);
+    console.error("Owner access lookup failed:", error.message, error.code);
     return false;
   }
-  if (!data) {
-    console.error("Admin role profile missing for user:", userId);
-    return false;
-  }
-  const allowed = String(data.role || "").trim().toLowerCase() === "admin";
-  if (!allowed) console.error("Admin role denied:", { userId, role: data.role });
-  return allowed;
+  return Boolean(data?.user_id);
 }
 
                                                                 Deno.serve(async (req: Request) => {
@@ -117,7 +115,8 @@ async function isAdmin(userId: string) {
     if (!storeStatus.ok) return json({ message: storeStatus.message }, storeStatus.status);
     try {
       const body = await req.json();
-      if (!getItemTable(body?.itemType) || !isUuid(body?.itemId)) return json({ message: "Item pesanan tidak valid." }, 400);
+      if (body?.itemType === "account") return json({ message: "Penjualan akun game sedang ditutup sementara demi keamanan pembeli." }, 403);
+      if (body?.itemType !== "product" || !isUuid(body?.itemId)) return json({ message: "Item pesanan tidak valid." }, 400);
       const { data: order, error } = await adminClient.rpc("dx_create_order_with_reservation", {
         p_buyer_id: user!.id, p_item_type: body.itemType, p_item_id: body.itemId,
       });
@@ -171,7 +170,15 @@ async function isAdmin(userId: string) {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 return json({ orderId: order.id, amount: Number(order.total_amount), status: order.status });
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (path.endsWith("/api/admin/orders") && req.method === "GET") {
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    if (req.method === "GET" && path.endsWith("/api/payments/delivery")) {
+    const orderId = url.searchParams.get("orderId") || "";
+    if (!isUuid(orderId)) return json({ message: "Nomor pesanan tidak valid." }, 400);
+    const { data, error } = await adminClient.rpc("dx_get_order_delivery", { p_order_id: orderId, p_buyer_id: user!.id });
+    if (error || !data) return json({ message: "Produk belum tersedia atau pesanan bukan milik akun ini." }, 404);
+    return json({ delivery: data });
+  }
+
+  if (path.endsWith("/api/admin/orders") && req.method === "GET") {
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         if (!await isAdmin(user!.id)) return json({ message: "Akses khusus admin." }, 403);
 
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             const { data, error } = await adminClient.from("orders")
@@ -188,11 +195,13 @@ async function isAdmin(userId: string) {
           }
 
           let imageUrl = null;
+          let canDeliver = false;
           if (order.item_id && order.item_type === "product") {
             const { data: item, error: imageError } = await adminClient
-              .from("products").select("image_url").eq("id", order.item_id).maybeSingle();
+              .from("products").select("image_url,seller_id").eq("id", order.item_id).maybeSingle();
             if (imageError) console.error("Order product image lookup failed:", order.id, imageError.message);
             imageUrl = item?.image_url || null;
+            canDeliver = Boolean(item?.seller_id === user!.id && ["paid", "processing"].includes(String(order.status || "").toLowerCase()));
           } else if (order.item_id && ["account", "account_listing"].includes(order.item_type)) {
             const { data: item, error: imageError } = await adminClient
               .from("account_listings").select("image_url").eq("id", order.item_id).maybeSingle();
@@ -203,6 +212,7 @@ async function isAdmin(userId: string) {
           return {
             order_id: order.id,
             image_url: imageUrl,
+            can_deliver: canDeliver,
             buyer_id: order.buyer_id,
             amount: Number(order.total_amount),
             item_name: order.item_name || "Pesanan DX STORE",
@@ -214,7 +224,28 @@ async function isAdmin(userId: string) {
         return json({ orders });
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            const adminMatch = path.match(/\/api\/admin\/orders\/([0-9a-f-]+)$/i);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            const deliveryMatch = path.match(/\/api\/admin\/orders\/([0-9a-f-]+)\/delivery$/i);
+  if (req.method === "POST" && deliveryMatch) {
+    if (!await isAdmin(user!.id)) return json({ message: "Akses khusus Owner DX STORE." }, 403);
+    const orderId = deliveryMatch[1];
+    let body: any = {};
+    try { body = await req.json(); } catch { return json({ message: "Isi pengiriman tidak valid." }, 400); }
+    const content = typeof body?.content === "string" ? body.content.trim() : "";
+    const buyerNote = typeof body?.buyerNote === "string" ? body.buyerNote.trim() : null;
+    if (!isUuid(orderId) || !content || content.length > 20000 || (buyerNote && buyerNote.length > 2000)) {
+      return json({ message: "Isi produk wajib diisi. Maksimal 20.000 karakter dan catatan 2.000 karakter." }, 400);
+    }
+    const { data, error } = await adminClient.rpc("dx_admin_deliver_order", {
+      p_order_id: orderId, p_admin_id: user!.id, p_content: content, p_buyer_note: buyerNote,
+    });
+    if (error || !data) {
+      console.error("Admin product delivery failed:", error?.message);
+      return json({ message: error?.message || "Produk gagal dikirim." }, 409);
+    }
+    return json({ order_id: orderId, status: "delivered", sent_at: data.sent_at });
+  }
+
+  const adminMatch = path.match(/\/api\/admin\/orders\/([0-9a-f-]+)$/i);
   if (req.method === "PATCH" && adminMatch) {
     if (!await isAdmin(user!.id)) return json({ message: "Akses khusus admin." }, 403);
     const orderId = adminMatch[1];
