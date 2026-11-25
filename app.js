@@ -1419,7 +1419,23 @@ async function loadDXOrderHistory(){
  const {data,error}=await dxSupabase.from("orders").select("id,item_name,total_amount,status,created_at").eq("buyer_id",currentUser.id).order("created_at",{ascending:false}).limit(50);
  if(error){host.textContent="Riwayat gagal dimuat: "+getDXError(error);return;}
  if(!data?.length){host.textContent="Belum ada pesanan.";return;}
- const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · menunggu diproses",processing:"Sedang diproses",delivered:"Sudah diserahkan · konfirmasi penerimaan",completed:"Selesai",cancelled:"Dibatalkan",rejected:"Ditolak",disputed:"Dalam penanganan"};host.innerHTML=data.map(o=>`<article class="dx-ticket-card" data-dx-order-history-id="${safeText(o.id)}"><b>${safeText(o.item_name||"Pesanan DX STORE")}</b><p>No. ${safeText(o.id)}</p><p>${formatPrice(o.total_amount)} · ${safeText(labels[o.status]||o.status)}</p><small>${new Date(o.created_at).toLocaleString(getDXCountry().locale||"id-ID")}</small>${o.status==="delivered"?`<p><button type="button" data-dx-confirm-received="${safeText(o.id)}">Konfirmasi Barang Diterima</button></p>`:""}</article>`).join("");host.querySelectorAll("[data-dx-confirm-received]").forEach(b=>b.addEventListener("click",()=>confirmDXOrderReceived(b.dataset.dxConfirmReceived)));
+ const session=(await dxSupabase.auth.getSession()).data.session;
+ const labels={pending:"Menunggu pembayaran",review:"Menunggu verifikasi pembayaran",paid:"Lunas · menunggu diproses",processing:"Sedang diproses",delivered:"Produk telah dikirim · konfirmasi penerimaan",completed:"Selesai",cancelled:"Dibatalkan",rejected:"Ditolak",disputed:"Dalam penanganan"};
+ const cards=await Promise.all(data.map(async o=>{
+  let deliveryHtml="";
+  if(["delivered","completed"].includes(o.status)&&session?.access_token){
+   try{
+    const response=await fetch(new URL("api/payments/delivery?orderId="+encodeURIComponent(o.id),DX_CONFIG.paymentApiUrl+"/"),{headers:{"apikey":DX_CONFIG.supabaseKey,"Authorization":"Bearer "+session.access_token}});
+    if(response.ok){
+     const result=await response.json(),delivery=result.delivery||{};
+     deliveryHtml=`<section style="margin-top:12px;padding:12px;border:1px solid #2874a6;border-radius:12px;background:#0b1d32"><strong style="color:#8de4ff">Produk dari DX STORE</strong><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.6;margin:9px 0;color:#eef7ff">${safeText(delivery.content||"")}</pre>${delivery.buyer_note?`<p style="margin:8px 0;color:#b8cbe2">${safeText(delivery.buyer_note)}</p>`:""}<small style="color:#91a7c4">Dikirim: ${new Date(delivery.sent_at).toLocaleString(getDXCountry().locale||"id-ID")}</small></section>`;
+    }
+   }catch(e){console.warn("Delivery detail unavailable",e);}
+  }
+  return `<article class="dx-ticket-card" data-dx-order-history-id="${safeText(o.id)}"><b>${safeText(o.item_name||"Pesanan DX STORE")}</b><p>No. ${safeText(o.id)}</p><p>${formatPrice(o.total_amount)} · ${safeText(labels[o.status]||o.status)}</p><small>${new Date(o.created_at).toLocaleString(getDXCountry().locale||"id-ID")}</small>${deliveryHtml}${o.status==="delivered"?`<p><button type="button" data-dx-confirm-received="${safeText(o.id)}">Konfirmasi Barang Diterima</button></p>`:""}</article>`;
+ }));
+ host.innerHTML=cards.join("");
+ host.querySelectorAll("[data-dx-confirm-received]").forEach(b=>b.addEventListener("click",()=>confirmDXOrderReceived(b.dataset.dxConfirmReceived)));
 }
 async function submitDXSupportTicket(event){
  event.preventDefault();if(!currentUser||!dxSupabase)return;
@@ -2154,6 +2170,15 @@ async function loadDXPaymentOrders() {
           </div>
           ${created ? `<small style="display:block;margin-top:7px;color:#91a7c4">${safeText(created)}</small>` : ""}
           ${order.proof_url ? `<p style="margin:9px 0"><a href="${safeText(order.proof_url)}" target="_blank" rel="noopener">Lihat bukti pembayaran</a></p>` : ""}
+          ${order.can_deliver && ["paid","processing"].includes(status) ? `
+            <div style="margin-top:12px;padding:12px;border:1px solid #315b89;border-radius:12px;background:#0b172a">
+              <strong style="display:block;margin-bottom:7px;color:#8de4ff">Kirim Produk ke Pembeli</strong>
+              <textarea id="dxDeliveryContent-${safeText(order.order_id)}" maxlength="20000" rows="5" placeholder="Ketik isi produk yang dibeli. Contoh: kode digital, materi, atau instruksi produk." style="box-sizing:border-box;width:100%;padding:10px;border:1px solid #36577e;border-radius:9px;background:#081326;color:#fff;resize:vertical"></textarea>
+              <input id="dxDeliveryNote-${safeText(order.order_id)}" maxlength="2000" placeholder="Catatan untuk pembeli (opsional)" style="box-sizing:border-box;width:100%;margin-top:8px;padding:10px;border:1px solid #36577e;border-radius:9px;background:#081326;color:#fff">
+              <button type="button" onclick="sendDXAdminDelivery('${safeText(order.order_id)}')" style="margin-top:9px">Kirim Produk</button>
+              <small style="display:block;margin-top:6px;color:#91a7c4">Hanya tampil di Pesanan Saya setelah admin mengirim. Pengiriman tidak dapat diulang.</small>
+            </div>
+          ` : ""}
           ${status === "review" ? `
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               <button type="button" data-dx-order="${safeText(order.order_id)}" data-dx-decision="paid" data-dx-source-status="review">Setujui</button>
@@ -2300,6 +2325,23 @@ async function reviewDXPayment(orderId, status, sourceStatus) {
     await loadDXPaymentOrders();
   } catch (error) { dxAlert(getDXError(error)); }
 }
+async function sendDXAdminDelivery(orderId){
+ if(!currentUser||!(await checkDXAdmin())){dxAlert("Akses Owner diperlukan.");return;}
+ const content=$("dxDeliveryContent-"+orderId)?.value.trim()||"";
+ const buyerNote=$("dxDeliveryNote-"+orderId)?.value.trim()||"";
+ if(!content){dxAlert("Isi produk untuk pembeli wajib diisi.");return;}
+ if(content.length>20000||buyerNote.length>2000){dxAlert("Isi produk atau catatan melebihi batas karakter.");return;}
+ if(!(await dxConfirm("Kirim isi produk ini kepada pembeli? Setelah dikirim, isi tidak dapat diganti melalui formulir ini.","Kirim Produk","Kirim Sekarang")))return;
+ try{
+  const session=(await dxSupabase.auth.getSession()).data.session;
+  const response=await fetch(new URL("api/admin/orders/"+encodeURIComponent(orderId)+"/delivery",DX_CONFIG.paymentApiUrl+"/"),{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+session?.access_token},body:JSON.stringify({content,buyerNote})});
+  const result=await response.json();
+  if(!response.ok)throw new Error(result.message||"Produk gagal dikirim.");
+  await loadDXPaymentOrders();
+  dxAlert("Produk berhasil dikirim. Pembeli dapat melihatnya di menu Pesanan Saya.");
+ }catch(error){dxAlert(getDXError(error));}
+}
+
 
 /* SIMPAN DATA */
 
