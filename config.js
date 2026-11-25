@@ -10,7 +10,7 @@ window.DX_CONFIG = {
   supabaseKey: "sb_publishable_qYzr-r6cQwQhfbrbChk3oA_6KQL46xh",
 
   // Penjualan akun game ditahan sampai sistem serah terima aman.
-  enableGameAccounts: false,
+  enableGameAccounts: true,
 
   // Supabase Edge Function untuk API pesanan manual QRIS.
   paymentApiUrl: "https://jevjydmlnkmkipzbmtqw.supabase.co/functions/v1/dx-payments"
